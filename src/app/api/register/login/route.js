@@ -5,19 +5,20 @@ import {Jwt} from "jsonwebtoken";
 import { compare } from 'bcryptjs';
 import { sign } from 'jsonwebtoken';
 
+//väkisin määritetty dynaaminen reitti
 export const dynamic = "force-dynamic";
-
+// Määritä skeema käyttäjän sähköpostin ja salasanan validointiin
 const schema = Joi.object({
   email: Joi.string().email().required(),
   password: Joi.string().required(),
 });
 
-//validate login with schema and inform user if the password or email entered was incorrect
+// POST-funktio käsittelee kirjautumispyyntöjä
 export async function POST(req) {
   await connectToDb();
-
+ // Purkaa pyynnöstä sähköpostin ja salasanan
   const { email, password } = await req.json();
-
+// Validoi sähköposti ja salasana
   const { error } = schema.validate({ email, password });
 
   if (error) {
@@ -26,21 +27,26 @@ export async function POST(req) {
       message: error.details[0].message,
     });
   }
+   // Alustetaan käyttäjämuuttuja
   let user;
   try {
+    // Etsi käyttäjä sähköpostin perusteella
     user = await UserModel.findOne({ email });
   } catch (err) {
+    // Jos tietokantahaku epäonnistuu, palauta virheviesti
     return NextResponse.json({
       success: false,
       message: "Internal Server Error",
     });
   }
+  // Jos käyttäjää ei löydy, palauta virheviesti
   if (!user) {
     return NextResponse.json({
       success: false,
       message: "User not found with this email",
     });
   }
+   // Vertaa salasanaa tietokannassa olevaan salasanaan
   const checkPassword = await compare(password, user.password);
   if (!checkPassword) {
     return NextResponse.json({
@@ -48,7 +54,7 @@ export async function POST(req) {
       message: "Invalid Password",
     });
   }
-  //create token and use it in final data which gets sent to front-end
+  // Luo JWT-token
   const token = Jwt.sign(
     {
       id: user._id,
@@ -58,7 +64,7 @@ export async function POST(req) {
     "default_secret_key",
     { expiresIn: "1d" }
   );
-
+// Muodosta lopulliset käyttäjätiedot
   const finalData = {
     token,
     user: {
@@ -68,6 +74,7 @@ export async function POST(req) {
       role: user.role,
     },
   };
+  // Palauta onnistumisviesti ja käyttäjätiedot
   return NextResponse.json({
     success: true,
     message: "login succesfull",

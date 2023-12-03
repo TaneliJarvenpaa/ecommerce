@@ -4,6 +4,7 @@ import User from "@/models/user";
 import Joi from "joi";
 import { hash } from "bcryptjs";
 
+// Määrittele validointisääntöjä käyttäjän syötteille
 const schema = Joi.object({
   name: Joi.string().required(),
   email: Joi.string().email().required(),
@@ -13,12 +14,16 @@ const schema = Joi.object({
 
 export const dynamic = "force-dynamic";
 
+// POST-metodi rekisteröintipyynnön käsittelyyn
 export async function POST(req) {
+  // Yhdistä tietokantaan
   await connectToDb();
+  // Purkaa käyttäjän syöttämät tiedot pyynnöstä
   const { name, email, password, role } = await req.json();
-  //validate schema
+  // Validoi syötetty data
   const { error } = schema.validate({ name, email, password, role });
 
+   // Jos validoinnissa ilmenee virheitä, loggaa ne ja palauta virheviesti
   if (error) {
     console.log("error during registration",error);
     return NextResponse.json({
@@ -27,7 +32,7 @@ export async function POST(req) {
     });
   }
   try {
-    //check if user exists allready, if it doesnt creates a new account
+     // Yritä tarkistaa, onko käyttäjä jo olemassa ja luo uusi käyttäjä tarvittaessa
     const isUserAllreadyExists = await User.findOne({ email });
     if (isUserAllreadyExists) {
       return NextResponse.json({
@@ -35,6 +40,7 @@ export async function POST(req) {
         message: "User allready exists. Please try with different Email",
       });
     } else {
+      // Hashaa salasana ja luo uusi käyttäjä
       const hashPassword = await hash(password, 12);
       const newlyCreatedUser = await User.create({
         name,
@@ -42,6 +48,9 @@ export async function POST(req) {
         password: hashPassword,
         role,
       });
+      console.log(newlyCreatedUser);
+      console.log("  ...   ")
+      // Jos käyttäjä luodaan onnistuneesti, palauta onnistumisviesti
       if (newlyCreatedUser) {
         return NextResponse.json({
           success: true,
@@ -50,6 +59,8 @@ export async function POST(req) {
       }
     }
   } catch (error) {
+    // Jos virheitä ilmenee, loggaa ne ja palauta palvelinvirheviesti
+    //koodi menee tähän mutta tiedot tulevat mongodb oikein
     console.log("Error is located at new user registration");
 
     return NextResponse.json({

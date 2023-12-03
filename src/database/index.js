@@ -3,8 +3,7 @@ import mongoose from "mongoose";
 
 const connectToDb = async () => {
   
-    const connectionUrl =
-      "mongodb+srv://jarvta:Taneliowns94!@cluster0.nq5spsu.mongodb.net/";
+    const connectionUrl = process.env.NEXT_PUBLIC_MONGODB_URL;
     mongoose
       .connect(connectionUrl)
       .then(() => console.log("connection succesfull to database"))
